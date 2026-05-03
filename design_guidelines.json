@@ -1,0 +1,125 @@
+{
+  "theme": "Light",
+  "archetype": "Archetype 4: Swiss & High-Contrast (Adapted to Premium Purple SaaS as requested)",
+  "mood": "Premium, calm, intelligent, modern, smooth, trustworthy, visually refined",
+  "typography": {
+    "primary_font": "Outfit",
+    "secondary_font": "Inter",
+    "heading_strategy": "Clean modern sans-serif with tight tracking for a premium enterprise feel. Outfit gives a sophisticated geometric tech vibe.",
+    "body_strategy": "Inter or Outfit with loose line-height for readability in dense ERP grids.",
+    "font_weights": {
+      "light": 300,
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
+    },
+    "scale": {
+      "h1": "text-4xl sm:text-5xl tracking-tight font-semibold text-slate-900",
+      "h2": "text-2xl sm:text-3xl tracking-tight font-medium text-slate-800",
+      "h3": "text-xl sm:text-2xl font-medium text-slate-800",
+      "h4": "text-lg font-medium text-slate-800",
+      "body": "text-sm sm:text-base text-slate-600",
+      "label": "text-xs tracking-[0.05em] uppercase font-semibold text-slate-500"
+    }
+  },
+  "colors": {
+    "backgrounds": {
+      "page": "bg-slate-50",
+      "glass": "bg-white/70 backdrop-blur-xl",
+      "card": "bg-white",
+      "sidebar": "bg-white/80 backdrop-blur-xl"
+    },
+    "text": {
+      "primary": "text-slate-900",
+      "secondary": "text-slate-500",
+      "tertiary": "text-slate-400",
+      "inverse": "text-white"
+    },
+    "brand": {
+      "primary": "bg-indigo-900",
+      "primary_hover": "bg-indigo-800",
+      "accent_purple": "text-purple-600 bg-purple-50",
+      "glow_purple": "shadow-[0_0_15px_rgba(139,92,246,0.3)]"
+    },
+    "module_accents": {
+      "dashboard": {
+        "text": "text-indigo-600",
+        "bg": "bg-indigo-50",
+        "border": "border-indigo-100",
+        "glow": "shadow-[0_0_15px_rgba(79,70,229,0.15)]"
+      },
+      "inventory": {
+        "text": "text-emerald-600",
+        "bg": "bg-emerald-50",
+        "border": "border-emerald-100",
+        "glow": "shadow-[0_0_15px_rgba(16,185,129,0.15)]"
+      },
+      "finance": {
+        "text": "text-blue-600",
+        "bg": "bg-blue-50",
+        "border": "border-blue-100",
+        "glow": "shadow-[0_0_15px_rgba(59,130,246,0.15)]"
+      }
+    },
+    "status": {
+      "success": "text-emerald-700 bg-emerald-50 border-emerald-200",
+      "warning": "text-amber-700 bg-amber-50 border-amber-200",
+      "danger": "text-rose-700 bg-rose-50 border-rose-200",
+      "info": "text-blue-700 bg-blue-50 border-blue-200"
+    }
+  },
+  "layout_and_spacing": {
+    "spacing_scale": "Tailwind standard (p-2, p-4, p-6, p-8). Generous padding to create 'breathing space' and uncluttered hierarchy.",
+    "container": "Max-w-[1600px] mx-auto",
+    "grid_system": "Bento-style structured grids for dashboards. Dense but spacious.",
+    "border_radius": "Rounded-2xl for main cards, rounded-xl for inner widgets, rounded-lg for small inputs.",
+    "cards": "Polished, soft glow edges, subtle reflections. Use 1px inner borders `border border-white/40 shadow-sm`.",
+    "glassmorphism": "Used selectively on Top Navbar, Sidebar Panel, Key Dashboard Cards, Search Modal. `backdrop-blur-xl bg-white/70`."
+  },
+  "components": {
+    "buttons": "Premium feel. Solid primary buttons have soft shadows (`shadow-md`). Hover states scale up slightly (`hover:-translate-y-[1px]`) and brighten. Use `data-testid` on all.",
+    "inputs": "Shadcn based. Custom rounded corners, soft focus rings (`focus:ring-indigo-500/30`), border-slate-200.",
+    "navigation": "Top Navbar with Glassmorphism. Dynamic Left Sidebar with active state indicators (smooth sliding background pill).",
+    "cards": "White or Glass background, `border border-slate-100`, subtle `shadow-sm` upgrading to `shadow-md` on hover. Use translucent layers.",
+    "charts": "Recharts with soft curves (`type='monotone'`), gradient fills (using `<defs><linearGradient>`), matching the module's accent color.",
+    "data_tables": "Clean, spacious rows. No vertical dividers. Subtle hover states on rows. Sticky headers with glass effect."
+  },
+  "motion_and_interactions": {
+    "transitions": "Smooth fade, elegant gradient shifts. `transition-all duration-300 ease-out`.",
+    "hover_effects": "Cards respond to cursor proximity (magnetic/lift). Soft cursor reactive glow near buttons. `hover:-translate-y-1`.",
+    "entrance": "Staggered fade-up for dashboard widgets and lists.",
+    "microinteractions": "Sidebar active item slides smoothly. Buttons click press states (`active:scale-95`)."
+  },
+  "icons": {
+    "library": "lucide-react",
+    "style": "Clean, line-based, stroke-width 1.5 for a delicate premium feel."
+  },
+  "media_and_assets": {
+    "logos": {
+      "brand": "TechnoBiz Smart ERP (Text Logo with a subtle purple icon)"
+    },
+    "images": {
+      "background_texture": {
+        "url": "https://images.unsplash.com/photo-1760008487097-1c80a500875f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1ODh8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBhYnN0cmFjdCUyMGdsYXNzJTIwc2hhcGUlMjBwdXJwbGUlMjBsaWdodCUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzc3NDQwODg3fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Abstract geometric shapes floating on a purple background - use sparingly as an ambient blur behind the dashboard"
+      }
+    },
+    "avatars": [
+      "https://images.unsplash.com/photo-1655249493799-9cee4fe983bb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHw0fHxwcm9mZXNzaW9uYWwlMjBidXNpbmVzcyUyMHBvcnRyYWl0JTIwaGVhZHNob3R8ZW58MHx8fHwxNzc3NDQwODg3fDA&ixlib=rb-4.1.0&q=85",
+      "https://images.unsplash.com/photo-1655249481446-25d575f1c054?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHwzfHxwcm9mZXNzaW9uYWwlMjBidXNpbmVzcyUyMHBvcnRyYWl0JTIwaGVhZHNob3R8ZW58MHx8fHwxNzc3NDQwODg3fDA&ixlib=rb-4.1.0&q=85",
+      "https://images.unsplash.com/photo-1689600944138-da3b150d9cb8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBidXNpbmVzcyUyMHBvcnRyYWl0JTIwaGVhZHNob3R8ZW58MHx8fHwxNzc3NDQwODg3fDA&ixlib=rb-4.1.0&q=85"
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Build a hybrid fullstack app featuring a layout with a Top Nav, Left Sidebar, and main content area.",
+    "Implement the Dashboard, Inventory, and Finance views.",
+    "Top Nav must include a global search command palette, notifications drawer, and user profile.",
+    "Dashboard should have 6 KPI cards with sparklines, an interactive chart for Cash Flow, and AI Smart Alert widgets.",
+    "Implement the dynamic module color system via contextual CSS variables or tailored Tailwind classes depending on the active module route.",
+    "Ensure glassmorphism is implemented cleanly using `backdrop-blur-xl bg-white/70` on the Top Nav and Sidebar.",
+    "Use Recharts for all data visualization needs. Apply soft glow effects (`drop-shadow`) to chart lines to meet the 'premium SaaS' requirement.",
+    "Include 'data-testid' on all interactive elements.",
+    "Apply Framer Motion or Tailwind transitions to make interactions fluid (250-450ms)."
+  ]
+}

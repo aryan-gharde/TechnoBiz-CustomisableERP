@@ -1,0 +1,9 @@
+.App { min-height: 100vh; }
+
+/* Module switching transition */
+.module-fade-enter { opacity: 0; transform: translateY(6px); }
+.module-fade-enter-active { opacity: 1; transform: translateY(0); transition: all .35s ease; }
+
+/* Recharts polish */
+.recharts-cartesian-grid line { stroke: rgba(148,163,184,0.15); }
+.recharts-text { fill: #64748b; font-size: 11px; }

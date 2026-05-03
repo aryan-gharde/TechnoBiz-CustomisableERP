@@ -1,0 +1,39 @@
+{
+  "summary": "First iteration testing of TechnoBiz Smart ERP. Backend: 23/23 pytest tests PASSED covering Auth, Dashboard, Inventory (products+stock-in/out+transfer+POs), Finance (invoices+expenses+receivables+payables+banking+GST+budgets), AI Insights (Claude Sonnet 4.5 live response), Approvals, Notifications. Frontend: Login → Dashboard navigation works, all 6 KPI cards render (data-testid='kpi-*'), 5 module tabs clickable, theme toggle persists in localStorage 'tb_theme', Alert 'Ask AI' triggers Claude and renders bullet insight, Stock-In form submits, PO new modal opens, profile menu + logout functional, notification drawer opens with seeded items, Receivables Remind triggers reminder API. All 5 module pages (Dashboard/Inventory/Finance/Reports/Settings) load with no JS pageerrors. GST page renders Output Tax/Input Credit/Net Payable/Filings correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Command Palette (⌘K)", "issue": "Could not be triggered via Playwright Meta+K or Control+K keyboard event. The global-search-btn (data-testid='global-search-btn') click should still open it; manual verification recommended. Not a confirmed bug — may be Playwright-level OS keymap limitation.", "affected_selectors": ["[data-testid=\"cmd-palette\"]"]}
+    ],
+    "design_issues": [
+      {"screen": "Dashboard / multiple", "issues": ["Recharts emits repeated console warnings: 'The width(-1) and height(-1) of chart should be greater than 0' on initial mount of sparkline ResponsiveContainers. Charts visually render fine after layout settles, but warnings indicate the parent container has 0 size on first render. Consider giving sparkline containers an explicit minWidth/minHeight or aspect prop to silence and prevent any first-paint flicker."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "(Optional, low priority) Silence recharts ResponsiveContainer width(-1)/height(-1) warnings by giving sparkline wrappers explicit size or aspect.",
+    "(Optional) Manually verify ⌘K command palette opens — Playwright cannot reliably emit the meta-K combo; the button-click path (data-testid='global-search-btn') was not separately exercised but the handler is wired."
+  ],
+  "critical_code_review_comments": [
+    "server.py is a single 565-line file containing models, auth, all module endpoints, and the seed routine. Splitting into routers/ (auth.py, dashboard.py, inventory.py, finance.py, insights.py) and a seed.py module would improve maintainability beyond MVP.",
+    "JWT_SECRET in /app/backend/.env is a placeholder ('change-in-prod') — fine for prototype, must be rotated before production.",
+    "Dashboard sparkline data is generated with random.seed(...) on every request (non-deterministic across requests — values change on each /api/dashboard call). For a 'premium prototype' this is acceptable; for production, persist or memoize.",
+    "approval_decision endpoint accepts a free-form dict — could be tightened with a Pydantic model and enum for status.",
+    "stock_in / stock_out do not validate that resulting quantity is non-negative; could allow negative inventory."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (created)",
+    "/app/backend/tests/__init__.py (created)"
+  ],
+  "success_rate": {"backend": "100% (23/23)", "frontend": "100% of testable flows (login, navigation, theme, KPIs, alerts/AI, stock-in, PO modal, notifications, profile menu, logout, GST, receivables remind)"},
+  "test_credentials": "demo@technobiz.com / demo123 (auto-seeded; matches /app/memory/test_credentials.md)",
+  "seed_data_creation": "Backend auto-seeds on startup if users collection empty: 1 demo user, 4 warehouses, 4 suppliers, 48 products, 28 invoices, 30 expenses, 8 POs, payables for outstanding suppliers, 3 bank accounts, 5 budgets, 4 pending approvals, 6 smart alerts, 8 activity events, 5 notifications. Tests created additional TEST_-prefixed records (1 product, 1 invoice, 1 expense, 1 PO) which were verified for persistence.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All backend endpoints and frontend critical flows are working as of iteration 1. backend_test.py is the regression suite (run: pytest /app/backend/tests/backend_test.py -v). For frontend regression, the data-testid catalogue is comprehensive — see grep output references: kpi-*, tab-*, alert-ai-*, alert-action-*, stock-in-form/qty/submit, stock-out-*, po-new, po-form, po-submit, po-approve-*, transfer-form/submit, theme-toggle, notif-btn, notif-drawer, profile-btn, profile-menu, menu-logout, fab, cmd-palette, global-search-btn, sidebar, sidebar-toggle. AI insights endpoint takes 4-8s for Claude Sonnet 4.5 response — set timeouts >=30s.",
+  "rca_of_the_issue": "N/A — no functional bugs found in this iteration."
+}

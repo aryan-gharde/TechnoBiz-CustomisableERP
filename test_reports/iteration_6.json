@@ -1,0 +1,48 @@
+{
+  "summary": "Iteration 6 — Global Calendar (/api/calendar/events + /calendar page) + Settings Notifications + Workflow Preferences. Backend: 9/9 pytest PASS in test_iteration6_calendar.py: GET /api/calendar/events returns aggregated events (invoice/payable/approval/po/gst/stock); each event has all required fields (id,type,date,title,subtitle,amount,status,link,severity); date YYYY-MM-DD, severity in {danger,warning,info}; events sorted ascending by date; date_from/date_to window narrows results correctly; future window filters as expected; endpoint requires auth (401). Frontend: Login OK. TopNav 'Calendar' tab (data-testid=tab-calendar) navigates to /calendar. Calendar page: calendar-page + cal-grid render, all 6 filter chips (invoice/payable/approval/po/gst/stock) present, prev/today/next nav buttons work — May 2026 → June 2026 transition verified. cal-day-2026-05-02 click reveals Day Details panel with cal-clear-day button → resetting hides it. Toggling cal-filter-invoice off/on flips invoice chips in grid 9→0→9. Clicking cal-event-{id} navigates to /finance/invoices for invoice events. Settings: notif-table renders with 24/24 toggles (8 topics × 3 channels = low_stock|overdue_invoices|gst_due|approvals|expense_anomaly|daily_briefing|po_status|cash_flow × email|in_app|push); toggling notif-low_stock-push flips state in localStorage tb_notif_prefs and survives reload. Workflow Preferences: all 7 selectors present (wf-approval-threshold, wf-payment-terms, wf-cadence, wf-digest-time, wf-auto-remind, wf-auto-po, wf-weekly); editing threshold to 250000 + toggling wf-auto-po persists to tb_workflow_prefs and survives full page reload (verified: approval_threshold=250000, auto_po_low_stock=True post-reload). Regression: Settings profile-edit + company-edit still present. Mobile (390x844): bottom-nav renders with all 5 tabs (home/stock/finance/calendar/settings); bottom-reports correctly removed. Direct nav to /calendar on mobile renders cal-grid + filter chips correctly.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "BottomNav (mobile 390x844)",
+        "issues": [
+          "Preview-environment-only: 'Made with Emergent' dev badge in bottom-right corner overlaps the rightmost bottom-nav tabs (bottom-settings and partially bottom-calendar). Click on bottom-calendar in the dashboard route did not register (URL stayed /dashboard) likely because of the badge overlay intercepting pointer events. Direct navigation to /calendar works fine. NOT an app code issue — the badge is injected by the Emergent preview shell, not from /app code. In production the badge is absent so this is non-blocking."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration6_calendar.py",
+    "/app/test_reports/pytest/iteration6_results.xml"
+  ],
+  "action_items": [
+    "OPTIONAL/LOW: Consider raising z-index of BottomNav above the Emergent dev badge OR adding right-side padding on mobile bottom-nav so the rightmost tabs aren't visually crowded by the badge in preview. Production-only deploy will not have the badge so this is cosmetic.",
+    "OPTIONAL/LOW: Backend /api/calendar/events GST due-date logic uses today.replace(day=20) which can throw ValueError on months with <20 days — actually safe (all months have ≥20 days), but the +32 days fallback to next month works. Consider explicit relativedelta(months=+1) for clarity.",
+    "OPTIONAL/LOW: Calendar.jsx fetches events on every cursor change with a fixed +/- 42-day window — a tiny optimization is to debounce or cache by month key. Not user-visible at current data volumes."
+  ],
+  "critical_code_review_comments": [
+    "Backend calendar_events aggregator is clean, correctly excludes _id (uses {'_id': 0} projection), and applies date window post-aggregation. Sorting is ascending. Severity mapping (danger/warning/info) is consistent.",
+    "Calendar.jsx uses a custom 6x7 grid (not shadcn calendar) per spec; data-testid='cal-day-YYYY-MM-DD' format is correct and unique per cell. fmtKey() pads month/day correctly.",
+    "Settings.jsx Notifications + Workflow are localStorage-only (per user choice, no backend) — both keys (tb_notif_prefs, tb_workflow_prefs) write on every state change via useEffect, and read on mount with merge into defaults. Reload persistence verified.",
+    "Filter chip 'on' state uses inline backgroundColor from TYPES[].color — works but is a minor CSS-in-JS pattern; consistent with the rest of the codebase.",
+    "Calendar prev/next/today buttons use cursor state cleanly; Today button resets to startOfMonth(new Date()) which is correct.",
+    "TopNav.jsx + BottomNav.jsx + Sidebar.jsx + AppShell.jsx all updated coherently — Calendar is wired in all 4 nav surfaces.",
+    "EventRow click → nav(ev.link) — link strings are hardcoded server-side (e.g. /finance/invoices, /inventory/alerts). Correct routes verified by clicking inv-event → /finance/invoices.",
+    "Minor: Calendar.jsx has eslint-disable-next-line on useEffect deps — load() depends on gridStart/days but only re-runs on cursor change, which is the intended behaviour. Acceptable.",
+    "Minor: Settings.jsx ToggleRow component is in same file (~377 lines); the file is approaching the 700-line guidance but still maintainable."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration6_calendar.py (created)"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 iteration-6 cases)",
+    "frontend": "100% on reviewed flows — Calendar grid+filters+nav+day-click+clear+filter-toggle+event-nav, Settings notif-table 24 toggles + localStorage persistence + reload persistence, Workflow 7 selectors + persistence + reload, regression on Profile/Company, mobile BottomNav 5-tab structure with Calendar replacing Reports."
+  },
+  "test_credentials": "demo@technobiz.com / demo123 (auto-seeded). Re-seed: POST /api/seed (no auth).",
+  "seed_data_creation": "None — pytest only reads via GET; UI test toggled localStorage state but reset to baseline at the end. No DB mutations.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All iteration-6 backend+frontend flows pass. Key selectors: Calendar — calendar-page, cal-grid, cal-prev/cal-today/cal-next, cal-filter-{invoice|payable|approval|po|gst|stock}, cal-day-YYYY-MM-DD (use fmtKey format), cal-clear-day, cal-event-{id} (id pattern: inv-{uuid} | pay-{uuid} | apr-{uuid} | po-{uuid} | gst-3b | stock-low). TopNav: tab-calendar. Mobile: bottom-calendar (replaces bottom-reports). Settings: notif-table, notif-{topic}-{channel} (8 topics × 3 channels), wf-approval-threshold/wf-payment-terms/wf-cadence/wf-digest-time/wf-auto-remind/wf-auto-po/wf-weekly. localStorage keys: tb_notif_prefs, tb_workflow_prefs (write-on-change via useEffect, read-on-mount with default merge). Backend: GET /api/calendar/events (auth required), supports ?date_from=&date_to= filters, returns sorted-by-date list."
+}

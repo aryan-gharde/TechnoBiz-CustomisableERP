@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 2 testing of TechnoBiz Smart ERP NEW features. Backend: 11/11 new pytest cases PASSED in /app/backend/tests/test_iteration2.py covering /api/insights/forecast (shape + 401), /api/inventory/auto-po (creates PO-AI-* drafts grouped by supplier, persisted to purchase-orders), /api/drilldown/{kpi} for revenue|expenses|profit|stock-value|low-stock|receivables (items+by_group, profit returns revenue/expenses/profit/margin), unknown KPI returns 404, unauth returns 401. Frontend: ForecastBadge renders top-right with accuracy 85%, MEDIUM pill, stable trend (data-testid='forecast-badge'). All 6 KPI cards (revenue/expenses/profit/stock-value/low-stock/receivables) navigate to /drilldown/:kpi correctly. Drilldown pages all 6 load with 'X Detail' title, distribution bar chart, records table, and working 'Back to Dashboard' link (data-testid='drilldown-back'). Auto-PO button (data-testid='auto-po-btn'): correctly disabled when low_stock empty, when enabled POSTs /api/inventory/auto-po (200, count=3, low_stock_count=10), shows toast, redirects to /inventory/purchase-orders within 1s, PO-AI-* visible in PO list. Pending Approvals desktop Approve/Reject buttons (data-testid='approval-approve'/'approval-reject') trigger POST /api/approvals/{id}/decision (200) and remove the card from the list. Mobile (414x896): BottomNav (data-testid='bottom-nav') visible with all 5 tabs (bottom-home/stock/finance/reports/settings), tabs navigate correctly (bottom-stock → /inventory), top sidebar hidden via md:flex, mobile-only swipe hint 'Swipe right to approve · left to reject' visible, desktop Approve buttons hidden on mobile.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Dashboard / Drilldown (multiple)", "issues": ["Recharts ResponsiveContainer width(-1)/height(-1) console warnings persist from iteration 1 — already noted, low priority. Charts render correctly after layout settles."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration2.py",
+    "/app/test_reports/pytest/iteration2_results.xml",
+    "/app/backend/tests/backend_test.py"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Auto-PO endpoint accumulates draft POs on every call without dedup — acceptable for prototype per user note. For production, should check for existing open PO-AI-* per supplier before creating duplicates.",
+    "Forecast endpoint uses random.Random(7) → deterministic per request, but accuracy formula `82.0 + (len(invs) % 13)` is essentially constant once invoice count stabilises. For a real prototype demo this is fine; flag for production replacement with actual time-series model.",
+    "Drilldown 'profit' branch returns items=[] and count=0 — frontend Drilldown.jsx must handle this case (it does; just noting). by_group is absent for profit/low-stock — Drilldown.jsx correctly conditionalises chart render.",
+    "server.py is now 664 lines — recommend splitting into routers (auth, inventory, finance, insights, drilldown) before next iteration.",
+    "BottomNav mounts on all viewports but is hidden via Tailwind `md:hidden`. Consider lazy-mounting to reduce DOM cost on desktop (minor)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration2.py (created)"
+  ],
+  "success_rate": {"backend": "100% (11/11 new cases — iteration 1 suite untouched and still green)", "frontend": "100% of new flows: ForecastBadge, 6 KPI→drilldown navigations, 6 drilldown pages, Auto-PO button (disabled-state + active flow + redirect), Pending Approvals desktop buttons, mobile BottomNav (5 tabs + navigation + sidebar-hidden + swipe-hint)"},
+  "test_credentials": "demo@technobiz.com / demo123 (auto-seeded)",
+  "seed_data_creation": "No new seed beyond iteration 1. Auto-PO test created 3 draft POs with PO-AI-* prefix per run (acceptable per problem statement note). 1 approval was approved via UI test, removing it from pending list.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All iteration-2 features working end-to-end. KPI testids use hyphens (kpi-revenue, kpi-expenses, kpi-profit, kpi-stock-value, kpi-low-stock, kpi-receivables) — NOT underscores (kpi_low_stock is wrong). Approval testids are 'approval-approve' / 'approval-reject' (one per approval card, multiple in DOM). Auto-PO button starts in disabled state until /api/inventory/alerts resolves — wait for `is_disabled() == False` before clicking. Swipe gestures could not be programmatically triggered in Playwright; verified mobile UI shows the hint and hides the desktop buttons but actual swipe→approve was not exercised. Backend regression suite: pytest /app/backend/tests/ -v (covers iteration 1 + iteration 2).",
+  "rca_of_the_issue": "N/A — no functional bugs found."
+}

@@ -1,0 +1,41 @@
+{
+  "summary": "Iteration 7 — Calendar CRUD super-admin (POST/PUT/DELETE /api/calendar/events) + Calendar.jsx Add/Edit/Delete UI. Backend: 17/17 pytest PASS in test_iteration7_calendar_crud.py covering: POST creates cust- event with editable=true and persists to GET; GET feed includes custom events with type=custom, editable=true, severity default 'info'; PUT cust- updates title/date/amount and re-fetched GET reflects changes; PUT cust-doesnotexist → 404; PUT gst-3b and stock-low → HTTP 400 with detail containing 'computed' (parametrized, both pass); DELETE gst-3b/stock-low → 400 same; PUT inv-/pay-/apr-/po- updates source records and changed date round-trips through GET; DELETE cust- removes from custom_events; DELETE inv- clears due_date but invoice record retained in /api/finance/invoices; POST/PUT without auth → 401. Frontend (1920x1080 desktop, Chromium): Login OK, tab-calendar nav OK, cal-grid renders. cal-add button opens event-create-modal with all 7 fields (evt-new-title/date/amount/subtitle/status/severity/submit). Submit creates event (POST → 200, pink-colored pill appears in correct day cell). cal-filter-custom chip renders with pink color and shows 'Custom 1' count. Clicking cal-pill-cust-{id} opens event-edit-modal with title/date/amount pre-populated (verified evt-title input value matches created title). Editing title and submitting via form.requestSubmit() triggers PUT /api/calendar/events/cust-{id} → 200 {ok:true,type:custom}, modal closes, pill text updates to new title (verified DOM after re-fetch). Custom pill delete via evt-delete (window.confirm auto-accepted via page.on('dialog')) → DELETE → 200 {ok:true,deleted:1}, pill removed, 'Event deleted' toast shown.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration7_calendar_crud.py",
+    "/app/test_reports/pytest/iteration7_results.xml"
+  ],
+  "action_items": [
+    "OPTIONAL/LOW: Calendar.jsx EventEditModal — the form Save button can render below the viewport on shorter desktops because the modal panel uses max-w-lg with no max-height/scroll. Suggest adding `max-h-[90vh] overflow-y-auto` to the form panel so the Save button is always reachable without page scroll. (Currently functional but causes Playwright bbox-based clicks to miss when viewport=1080.)",
+    "OPTIONAL/LOW: Backend PUT /api/calendar/events/{id} — the 400 response for gst/stock currently uses the catch-all `raise HTTPException(400, f\"Event type '{prefix}' is computed and cannot be edited (gst/stock).\")`. This relies on _split_event_id partitioning the prefix correctly for known types only; an unknown prefix (e.g. typo) also falls through to this 400. Consider an explicit allow-list of editable prefixes and a 404 for unknown event ids."
+  ],
+  "critical_code_review_comments": [
+    "Backend CalendarEventIn/CalendarEventPatch are clean Pydantic models with sensible defaults; _split_event_id handles UUID dashes correctly via str.partition('-', 1).",
+    "POST /calendar/events stores user.email in created_by — good audit trail. Excludes _id via projection in GET.",
+    "PUT mappings (date→due_date for inv/pay, date→ts for apr/po, title→client_name/vendor/title) are correct and match the GET aggregation logic.",
+    "DELETE semantics are well-designed: invoices/payables retain the source record (clears due_date only), while approvals/POs delete the source — appropriate for super-admin platform.",
+    "Calendar.jsx wires cal-add to onCreateClick(null) which defaults to today; cal-day-add-{date} pre-fills the clicked date; cal-day-create uses the currently selected day. All three create paths converge on EventCreateModal with correct defaultDate prop.",
+    "EventEditModal correctly disables inputs when !editable (gst/stock) and replaces Save+Delete with a single Close button plus the amber 'cannot be edited directly' banner. Verified via code review.",
+    "Btn primitive (Primitives.jsx) spreads {...props} including type='submit' so form submission works correctly via form.onSubmit handler.",
+    "MINOR: EventEditModal panel has no max-height — on shorter viewports the Save/Delete row can fall below the fold (caused our Playwright force-click test to miss). Add `max-h-[90vh] overflow-y-auto` to the form for a11y/usability.",
+    "MINOR: Calendar.jsx is now ~520 lines with two modal sub-components inline. Still maintainable but consider extracting EventCreateModal + EventEditModal into /pages/calendar/ if it grows further."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration7_calendar_crud.py (created)",
+    "/app/test_reports/pytest/iteration7_results.xml (generated)"
+  ],
+  "success_rate": {
+    "backend": "100% (17/17 iteration-7 cases: create, get-includes-custom, update-custom, update-404, gst-put-400 ×2, gst-delete-400 ×2, update inv/pay/apr/po, delete-custom, delete-invoice-retains-record, delete-unauth-401, post-unauth, put-unauth)",
+    "frontend": "100% on verified flows — login, nav-to-calendar, cal-add → create-modal, fields present, submit creates pink custom event pill, cal-filter-custom chip renders with count, click pill → edit modal opens with pre-populated values, edit + save (requestSubmit) → PUT 200 → modal closes → pill updates, delete custom → DELETE 200 → pill removed + toast"
+  },
+  "test_credentials": "demo@technobiz.com / demo123 (auto-seeded). Re-seed: POST /api/seed (clears users — re-login required after).",
+  "seed_data_creation": "Backend tests created 4 short-lived TEST_-prefixed custom events (each cleaned up in finally block). One test ran POST /api/seed to reset state then verified DELETE inv- retains the invoice record. Frontend test created 3 transient TEST_ custom events, all deleted at end. No leftover test data.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All iteration-7 calendar CRUD flows verified. Key selectors: cal-add (header Add Event), event-create-modal, evt-new-{title,date,amount,subtitle,status,severity,submit}; event-edit-modal opens on cal-pill-{id} or cal-event-{id} click; evt-{title,date,amount,subtitle,status,severity}, evt-save, evt-open, evt-delete (label is 'Delete' for custom, 'Remove from calendar' for inv/pay); cal-day-add-{YYYY-MM-DD} (hover-revealed +); cal-day-create (Add here in Day Details panel when a day is selected); cal-filter-custom (pink chip). Backend: POST /api/calendar/events (auth, returns id with cust- prefix), PUT /api/calendar/events/{id} (cust-/inv-/pay-/apr-/po- supported; gst-3b and stock-low return 400 with 'computed' in detail), DELETE /api/calendar/events/{id} (cust- removes; inv-/pay- clears due_date only; apr-/po- deletes record; gst/stock 400). IMPORTANT for Playwright: window.confirm must be accepted via page.on('dialog', ...). The EventEditModal can extend below 1080 viewport — prefer form.requestSubmit() via page.evaluate over coordinate-based clicks on evt-save. Also: a left-over open modal blocks pointer events on grid cells, so always close modals between flows."
+}

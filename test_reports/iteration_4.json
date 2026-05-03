@@ -1,0 +1,54 @@
+{
+  "summary": "Iteration 4 tested. Backend: 35/35 pytest cases PASS (11 RBAC, 2 Search, 22 Reports). Covers /api/rbac/roles list+get+404, /api/rbac/modules (7 modules w/ features), PUT role (non-locked OK, Super Admin 403), POST role (blank + from template), duplicate (copy suffix + is_locked=false), DELETE (403 locked / 200 unlocked with 404 after), /api/rbac/audit recent entries w/ role_name+action+actor+ts+summary, /api/search?q=Apex returns mixed results incl invoices (empty q → empty), /api/reports/{pl,sales,expenses,stock} × {day,week,month,all} = 16 cases all return metrics+rows, unknown kind 404, /api/reports/{kind}/summary returns 'summary' with • bullets + base fields for all 4 kinds (Claude), /api/reports/pl/export.csv returns text/csv with attachment filename and CSV body containing 'Report' and 'pl'. Frontend: /settings/access-control loads, 10 role buttons visible with pattern 'role-{level}-{name}', Super Admin selection shows 'locked' copy. Finance Admin (role-high-finance-admin) selects, all 5 tabs (modules/features/approvals/scope/security) switch via tab-{id}. Audit drawer opens (audit-drawer visible). Duplicate creates copy and selects it. New Role modal (create-role-form) submits and selects new role. Global Search palette opens via global-search-btn (cmd-palette visible). Reports page: AI summary returned 682-char string beginning with '• Your business reported ₹3.79 lakh revenue…'; CSV export downloaded 'sales_month.csv'. Settings tiles settings-rbac + settings-migration both visible and navigate. AlertCard source contains min-h-[68px] and Dashboard alerts grid uses items-start.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "AccessControl · mod-toggle-* (Modules tab) AND feat-section-* header (Features tab)",
+        "issue": "Invalid nested <button> inside <button> — React logs 'In HTML, <button> cannot be a descendant of <button>. This will cause a hydration error.' Outer <button> data-testid='mod-toggle-{id}' wraps inner <Toggle> which renders a <button>. Similarly feat-section expand <button> header wraps two <Btn> (Enable all / Read-only) which are <button> elements. These are real HTML errors producing hydration warnings and can cause odd click bubbling (clicking Enable all also triggers the outer header even though onClick stopPropagation is used).",
+        "selector": "[data-testid^='mod-toggle-'], [data-testid^='feat-section-'] > button",
+        "priority": "HIGH"
+      },
+      {
+        "component": "CommandPalette · cmd-input (cmdk Command.Input)",
+        "issue": "When typing search query programmatically via Playwright locator.fill('Apex'), 0 search-result-* items render even though backend /api/search?q=Apex returns 8+ matches. cmdk's Command.Input may not pick up the value set via .fill() (input event not dispatched in a way that triggers onValueChange). Real users likely unaffected (normal keystrokes work), but this indicates the component may not handle programmatic value sync. Recommend verifying with pressSequentially/type and consider using controlled <input> with onChange fallback.",
+        "selector": "[data-testid='cmd-input']",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration4.py",
+    "/app/test_reports/pytest/iteration4_results.xml"
+  ],
+  "action_items": [
+    "FIX (HIGH): AccessControl.jsx — do not nest <button> inside <button>. Either (a) change mod-toggle-{id} wrapper to a <div role='button' tabIndex=0> with keydown handler and keep <Toggle> as actual button, or (b) replace the inner <Toggle> with a non-interactive <span> visual toggle. Same for feat-section header (lines 287-298) — move 'Enable all' / 'Read-only' out of the <button> header into a sibling flex element.",
+    "VERIFY: Global Search — open palette, type 'Apex' as a real user and confirm results appear. If cmdk Command.Input has a known controlled-value issue, switch to a plain <input value={q} onChange={e=>setQ(e.target.value)} /> while still passing q to Command for filter state.",
+    "MINOR: When auto-expanding feat-section-{module} on first load, currently the `expandedMods` state seeds only {inventory:true, finance:true}. For Finance Admin role the Finance module is visible but its section was collapsed by default in the test run — user has to click to expand. Consider defaulting to expanded for every enabled module of the selected role."
+  ],
+  "critical_code_review_comments": [
+    "server.py now 1266 lines (up from 922 last iteration). Strongly recommend splitting into routers/ (rbac, reports, search, insights, migration) — single-file maintainability risk is accumulating.",
+    "RBAC modules endpoint returns {modules: [...]} while other RBAC GETs return bare arrays — inconsistent envelope shape. Low priority but will bite a future frontend consumer.",
+    "RBAC create_role when template_role_id is provided but not found silently falls back to minimal 'dashboard read-only' template — should 404 or 400 to make misuse visible.",
+    "RBAC save audit entry stores actor=user['name']; /api/rbac/audit returns this directly. No timezone-aware display or action enum (create|update|duplicate|delete) documented in response schema.",
+    "/api/reports/{kind}/summary swallows all Claude exceptions into a generic 3-bullet fallback — good for UX but masks integration failures. Log exception with level=error instead of bare except Exception.",
+    "/api/reports/{kind}/export.csv does not handle unknown kind explicitly — it calls report(kind, ...) which raises 404, but StreamingResponse is still created lazily so the error path works. Add explicit guard for clarity.",
+    "Reports.jsx exportCSV uses fetch with manually-attached Bearer token from localStorage instead of shared api.get/axios — should use the same api instance to keep header logic centralised.",
+    "AccessControl.jsx is 525 lines and includes the modal, both toggle components, four tab render blocks. Split CreateRoleModal, Toggle, Check into their own files and move tab-content blocks into small components for maintainability."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration4.py (created)"
+  ],
+  "success_rate": {
+    "backend": "100% (35/35 iteration-4 cases)",
+    "frontend": "~85% — RBAC directory/selection/tabs/duplicate/audit/create all verified, Settings tiles verified, Reports AI summary + CSV export verified. Global Search palette opens but programmatic typing does not produce results (likely cmdk quirk, needs manual retest). Nested <button> console errors on Access Control page."
+  },
+  "test_credentials": "demo@technobiz.com / demo123 (auto-seeded). Re-seed: POST /api/seed (no auth).",
+  "seed_data_creation": "Pytest test_iteration4 creates/deletes TEST_* roles within each test and cleans up via DELETE. Net-new roles after run: 0 (all TEST roles are deleted). /api/seed is called at module start so the 10 seed roles are always fresh.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All iteration-4 backend endpoints stable. Use BASE_URL from REACT_APP_BACKEND_URL (export $(grep -v ^# frontend/.env | xargs) before pytest). Claude summary calls take 3-8s — pytest timeout per summary call set to 60s. For UI: (1) nested <button> console errors confirmed on /settings/access-control — main agent must fix AccessControl.jsx mod-toggle-* and feat-section-* header layouts. (2) cmdk Command.Input does not sync to Playwright .fill() — use page.locator('[data-testid=\"cmd-input\"]').press_sequentially('Apex', delay=50) or page.keyboard.type('Apex') after focus, then wait ~1.2s before asserting search-result-* elements. (3) Features tab defaults to expanded state only for inventory and finance; for the Finance Admin role finance may still render collapsed — expand via page.locator('[data-testid=\"feat-section-finance\"] > button').click() before trying to toggle crud-finance.invoices-delete. (4) Reports page AI summary is rendered after ~3-8s; wait for data-testid='report-summary' text length > 10. Export CSV triggers a native download; use page.expect_download().",
+  "rca_of_the_issue": "Nested <button> HTML error RCA: AccessControl.jsx line 263-273 renders <button data-testid='mod-toggle-{m.id}' ...> ...<Toggle on={enabled} /></button>, and the Toggle component at line 477-482 renders <button onClick={onClick} ...>. React hydrates both and the browser parser throws. Fix: either (a) make Toggle a <span role='switch'> visual element since the outer <button> already handles the click, or (b) change the outer container from <button> to a <div role='button' onClick=... onKeyDown=...>. Same pattern applies to lines 287-298 where feat-section header <button> nests <Btn> components."
+}
