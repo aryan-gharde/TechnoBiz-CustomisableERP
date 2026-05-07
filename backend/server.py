@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os, logging, uuid, jwt, bcrypt, asyncio, random, csv, io, json, re
+import requests
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Any, Dict
@@ -18,7 +19,13 @@ db = client[os.environ['DB_NAME']]
 
 JWT_SECRET = os.environ['JWT_SECRET']
 JWT_ALGO = os.environ.get('JWT_ALGO', 'HS256')
-EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
+LLM_API_KEY = os.environ.get('LLM_API_KEY', '')
+AI_PROVIDER = os.environ.get('AI_PROVIDER', '').strip().lower()
+ANTHROPIC_MODEL = os.environ.get('ANTHROPIC_MODEL', 'claude-sonnet-4-5-20250929')
+OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')
+AI_TIMEOUT_SECONDS = float(os.environ.get('AI_TIMEOUT_SECONDS', '30'))
 
 app = FastAPI(title="TechnoBiz Smart ERP")
 api = APIRouter(prefix="/api")
@@ -679,21 +686,88 @@ async def delete_calendar_event(event_id: str, user=Depends(current_user)):
     raise HTTPException(400, f"Event type '{prefix}' cannot be deleted (gst/stock are computed).")
 
 # ---------- AI Insights ----------
+def _configured_ai_provider() -> str:
+    if AI_PROVIDER:
+        return AI_PROVIDER
+    if OPENAI_API_KEY and not ANTHROPIC_API_KEY:
+        return "openai"
+    return "anthropic"
+
+
+def _post_json(url: str, headers: Dict[str, str], payload: Dict[str, Any]) -> Dict[str, Any]:
+    res = requests.post(url, headers=headers, json=payload, timeout=AI_TIMEOUT_SECONDS)
+    res.raise_for_status()
+    return res.json()
+
+
+async def _ai_complete(session: str, system: str, prompt: str) -> str:
+    provider = _configured_ai_provider()
+
+    if provider == "anthropic":
+        key = ANTHROPIC_API_KEY or LLM_API_KEY
+        if not key:
+            raise RuntimeError("Set ANTHROPIC_API_KEY or LLM_API_KEY to enable AI insights.")
+
+        data = await asyncio.to_thread(
+            _post_json,
+            "https://api.anthropic.com/v1/messages",
+            {
+                "x-api-key": key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            {
+                "model": ANTHROPIC_MODEL,
+                "max_tokens": 1024,
+                "system": system,
+                "messages": [{"role": "user", "content": prompt}],
+                "metadata": {"user_id": session[:64]},
+            },
+        )
+        return "\n".join(
+            part.get("text", "")
+            for part in data.get("content", [])
+            if part.get("type") == "text"
+        ).strip()
+
+    if provider == "openai":
+        key = OPENAI_API_KEY or LLM_API_KEY
+        if not key:
+            raise RuntimeError("Set OPENAI_API_KEY or LLM_API_KEY to enable AI insights.")
+
+        data = await asyncio.to_thread(
+            _post_json,
+            "https://api.openai.com/v1/chat/completions",
+            {
+                "authorization": f"Bearer {key}",
+                "content-type": "application/json",
+            },
+            {
+                "model": OPENAI_MODEL,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": prompt},
+                ],
+                "temperature": 0.2,
+            },
+        )
+        return data["choices"][0]["message"]["content"].strip()
+
+    raise RuntimeError(f"Unsupported AI_PROVIDER '{provider}'. Use 'anthropic' or 'openai'.")
+
+
 @api.post("/insights/generate")
 async def generate_insight(body: InsightReq, user=Depends(current_user)):
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"insight-{user['id']}-{body.topic}",
-            system_message=("You are TechnoBiz ERP's proactive AI advisor. "
-                            "Give 2-3 short, actionable bullet recommendations for SME "
-                            "owners in manufacturing/trading/construction. Be specific, "
-                            "concise, India business context. Never use markdown headers, "
-                            "just bullet points starting with '•'.")
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-        msg = UserMessage(text=f"Topic: {body.topic}\nContext: {body.context}\nGive 2-3 actionable recommendations.")
-        resp = await chat.send_message(msg)
+        resp = await _ai_complete(
+            f"insight-{user['id']}-{body.topic}",
+            ("You are TechnoBiz ERP's proactive AI advisor. "
+             "Give 2-3 short, actionable bullet recommendations for SME "
+             "owners in manufacturing/trading/construction. Be specific, "
+             "concise, India business context. Never use markdown headers, "
+             "just bullet points starting with '•'."),
+            f"Topic: {body.topic}\nContext: {body.context}\nGive 2-3 actionable recommendations.",
+        )
         return {"insight": resp}
     except Exception as e:
         logging.exception("AI insight failed")
@@ -713,10 +787,7 @@ async def _gather_snapshot():
 
 
 async def _claude(session: str, system: str, prompt: str):
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
-    chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=session, system_message=system)\
-        .with_model("anthropic", "claude-sonnet-4-5-20250929")
-    return await chat.send_message(UserMessage(text=prompt))
+    return await _ai_complete(session, system, prompt)
 
 
 def _extract_json(text: str):
